@@ -1,4 +1,4 @@
-'use strict';
+'use strict';//test 
 var historySearch = false;
 var selectedIds = "";
 $(function () {
