@@ -61,3 +61,52 @@ public static class ConfigHelper
             return citrixFileScanning;
         }
     }
+  public async Task<string> GetBearerToken(ExecutionContext context)
+        {
+            try
+            {
+                var _apiClientSettings = ConfigHelper.GetApiClientSettings(context);
+                //var token = GetToken(context, _apiClientSettings).Result;
+                //return token;
+#if DEBUG
+                HttpClientHandler clientHandler = new HttpClientHandler
+                {
+                    UseProxy = true,
+                    Proxy = new WebProxy
+                    {
+                        Address = new Uri(proxyurl),
+                        BypassProxyOnLocal = true,
+                        UseDefaultCredentials = true
+                    }
+                };
+                var client = new HttpClient(handler: clientHandler);
+#else
+               var client = new HttpClient();
+#endif
+
+                JObject payload = null;
+                client.BaseAddress = new Uri("https://login.microsoftonline.com/");
+
+                var content = new FormUrlEncodedContent(new[]
+                            {
+                            new KeyValuePair<string, string>(OpenIdConnectParameterNames.ClientId, _apiClientSettings.ClientId),
+                            new KeyValuePair<string, string>(OpenIdConnectParameterNames.ClientSecret,_apiClientSettings.ClientSecret),
+                            new KeyValuePair<string, string>(OpenIdConnectParameterNames.Resource, _apiClientSettings.Resource),
+                            new KeyValuePair<string, string>(OpenIdConnectParameterNames.Scope, _apiClientSettings.Scope),
+                            new KeyValuePair<string, string>(OpenIdConnectParameterNames.GrantType, "client_credentials"),
+                         });
+
+                var response = await client.PostAsync("CompanyName/oauth2/token", content);
+                string resultContent = await response.Content.ReadAsStringAsync();
+                response.EnsureSuccessStatusCode();
+                payload = JObject.Parse(resultContent);
+                var bearerToken = payload.Value<string>(OpenIdConnectParameterNames.AccessToken);
+                return bearerToken;
+            }
+            catch (Exception ex)
+            {
+
+                throw ex;
+            }
+           
+        }
